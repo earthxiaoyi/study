@@ -1,12 +1,17 @@
 package leaderus.study3;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 public interface RateLimitingSQLQueue {
+
+	public static final ThreadLocal<AtomicInteger> threadLocal = new ThreadLocal<AtomicInteger>();
+
 	/**
 	 * 符合该SQL前缀匹配的所有SQL，同时只能有N个在执行
 	 * @param sql
 	 * @param maxConcurrent
 	 */
-	public void adddLimit(String sql,int maxConcurrent);
+	public void addLimit(String sql,int maxConcurrent);
 	
 	/**
 	 * 表明属于指定owner的SQL是否可以立即执行，如果当前SQL满足限流条件，
