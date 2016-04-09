@@ -10,7 +10,7 @@ import java.util.Set;
  */
 public class LinkedRateLimitingSQLQueue implements RateLimitingSQLQueue{
 
-    private Map<String,AtomicInteger> sqlLimitMap = new HashMap<String, AtomicInteger>();
+    private static Map<String,AtomicInteger> sqlLimitMap = new HashMap<String, AtomicInteger>();
     private SQLEngine sqlEngine = new SQLEngine();
     private SQLLinkList link = new SQLLinkList();
 
@@ -26,7 +26,7 @@ public class LinkedRateLimitingSQLQueue implements RateLimitingSQLQueue{
      * @param sql 执行sql
      * @return entry
      */
-    public Map.Entry<String,AtomicInteger> getLimitSql(String sql){
+    public static Map.Entry<String,AtomicInteger> getLimitSql(String sql){
         //便利map
         Set<Map.Entry<String,AtomicInteger>> set = sqlLimitMap.entrySet();
         Iterator<Map.Entry<String,AtomicInteger>> iter = set.iterator();
@@ -45,12 +45,11 @@ public class LinkedRateLimitingSQLQueue implements RateLimitingSQLQueue{
         Map.Entry<String, AtomicInteger> limitSql = getLimitSql(sql);
         if(limitSql!=null){
             AtomicInteger maxConcurrent = limitSql.getValue();
-            if(maxConcurrent.intValue() != 0){
+            if(maxConcurrent.intValue() > 0){
                 //执行次数减一
                 maxConcurrent.decrementAndGet();
                 sqlEngine.runSQL(ownerId, sql);
                 //设置
-                threadLocal.set(maxConcurrent);
                 return true;
             }else{
                 //放入队列中等待
@@ -69,55 +68,58 @@ public class LinkedRateLimitingSQLQueue implements RateLimitingSQLQueue{
         return link.getRunSQLBySameSQL(sql);
     }
 
-    private class SQLLinkList{
-        private Node firstNode;
-
-        public void add(String runSQL,String limitSQL){
-            Node newNode = new Node(runSQL, limitSQL);
-            newNode.setNext(newNode);
-            firstNode = newNode;
-        }
-
-        /**
-         * 获取队列中排队的sql
-         * @param runSQL 执行的sql
-         * @return 执行的sql
-         */
-        public String getRunSQLBySameSQL(String runSQL){
-            Node currentNode = firstNode;
-            while(currentNode != null && currentNode.getLimitSQL() != null){
-                if(!runSQL.startsWith(currentNode.getLimitSQL())){
-                    currentNode = currentNode.getNext();
-                }else{
-                    //删除节点
-                    remove(currentNode);
-                    return currentNode.getRunSQL();
-                }
-            }
-            return null;
-        }
-
-        /**
-         * 删除节点
-         * @param node 需要删除的节点
-         */
-        public void remove(Node node){
-            Node previNode = firstNode;
-            Node needNode = node;
-            if(!previNode.getRunSQL().equals(needNode.getRunSQL())){
-                //查找需要删除节点的前置节点
-                while(!previNode.getNext().getRunSQL().equals(needNode.getRunSQL())){
-                    previNode = previNode.getNext();
-                }
-                previNode.setNext(needNode.getNext());
-            }else{
-                firstNode = null;
-            }
-        }
-    }
+    
+    
 }
 
 
+class SQLLinkList{
+	
+    private Node firstNode;
+
+    public synchronized void add(String runSQL,String limitSQL){
+        Node newNode = new Node(runSQL, limitSQL);
+        newNode.setNext(firstNode);
+        firstNode = newNode;
+    }
+
+    /**
+     * 获取队列中排队的sql
+     * @param runSQL 执行的sql
+     * @return 执行的sql
+     */
+    public String getRunSQLBySameSQL(String runSQL){
+        Node currentNode = firstNode;
+        while(currentNode != null && currentNode.getLimitSQL() != null){
+            if(!runSQL.equals(currentNode.getRunSQL())){
+                currentNode = currentNode.getNext();
+            }else{
+                //删除节点
+                remove(currentNode);
+                return currentNode.getRunSQL();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 删除节点
+     * @param node 需要删除的节点
+     */
+    public void remove(Node node){
+        Node previNode = firstNode;
+        Node needNode = node;
+        if(!previNode.getRunSQL().equals(needNode.getRunSQL())){
+            //查找需要删除节点的前置节点
+            while(!previNode.getNext().getRunSQL().equals(needNode.getRunSQL())){
+                previNode = previNode.getNext();
+            }
+            previNode.setNext(needNode.getNext());
+        }else{
+            firstNode = null;
+        }
+    }
+}
 class Node{
     private String runSQL;//执行的sql
     private String limitSQL;//限制的sql

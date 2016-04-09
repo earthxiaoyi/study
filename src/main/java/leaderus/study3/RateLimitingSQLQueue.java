@@ -4,8 +4,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public interface RateLimitingSQLQueue {
 
-	public static final ThreadLocal<AtomicInteger> threadLocal = new ThreadLocal<AtomicInteger>();
-
 	/**
 	 * 符合该SQL前缀匹配的所有SQL，同时只能有N个在执行
 	 * @param sql

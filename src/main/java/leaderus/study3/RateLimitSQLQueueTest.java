@@ -14,10 +14,6 @@ public class RateLimitSQLQueueTest {
         for(int i=0;i<20;i++){
             Test test = new Test(myQueue, sql);
             new Thread(test).start();
-            String runSQL = null;
-            while((runSQL = myQueue.pullNextWaitingSQL(sql))!=null){
-                myQueue.canRunImmediately(Thread.currentThread().getName(),runSQL);
-            }
         }
     }
 
@@ -30,6 +26,15 @@ class Test implements Runnable{
         this.sql=sql;
     }
     public void run() {
-        myQueue.canRunImmediately(Thread.currentThread().getName(),sql);
+    	//执行sql
+        boolean bool = myQueue.canRunImmediately(Thread.currentThread().getName(),sql);
+        //获取队列中相同的sql，如果有就执行，否则退出
+        while(true){
+        	String waiteSQL = myQueue.pullNextWaitingSQL(sql);
+        	if(waiteSQL==null){
+        		break;
+        	}
+            myQueue.canRunImmediately(Thread.currentThread().getName(),waiteSQL);
+        }
     }
 }

@@ -1,5 +1,6 @@
 package leaderus.study3;
 
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -19,11 +20,13 @@ public class SQLEngine {
 						}
 						
 						System.out.println("SQL:"+runSQL+",执行了"+time+"毫秒！");
+						Entry<String, AtomicInteger> limitSql = LinkedRateLimitingSQLQueue.getLimitSql(runSQL);
+						if(limitSql != null){
+							limitSql.getValue().incrementAndGet();
+							System.out.println(limitSql.getValue());
+						}
 					}
 				}
 		).start();
-		//执行完之后加1
-		AtomicInteger atomicInteger = RateLimitingSQLQueue.threadLocal.get();
-		atomicInteger.incrementAndGet();
 	}
 }
