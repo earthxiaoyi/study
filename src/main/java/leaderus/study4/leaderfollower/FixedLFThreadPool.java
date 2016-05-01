@@ -2,13 +2,16 @@ package leaderus.study4.leaderfollower;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class FixedLFThreadPool {
-	private Object monitor = new Object();
 	private int poolSize = 10;
 	private EventHandler eventHandler;
 	private List<Thread> threadList = new ArrayList<Thread>();
 	private EventProducer producer;
+	private Lock lock = new ReentrantLock(true);
+	
 	public FixedLFThreadPool(EventHandler eventHandler,EventProducer producer){
 		this.eventHandler = eventHandler;
 		this.producer = producer;
@@ -30,27 +33,10 @@ public class FixedLFThreadPool {
 	
 	public void init(){
 		for(int i=0;i<poolSize;i++){
-			LFThread lfThread = new LFThread(this,eventHandler,producer);
+			LFThread lfThread = new LFThread(this,eventHandler,producer,lock);
 			lfThread.setName("线程"+i);
 			lfThread.start();
 			threadList.add(lfThread);
-		}
-		this.promoteToLeader();
-	}
-	
-	public void waitToLeader(){
-		synchronized (monitor) {
-			try {
-				monitor.wait();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-	
-	public void promoteToLeader(){
-		synchronized (monitor) {
-			monitor.notify();
 		}
 	}
 }
