@@ -1,32 +1,53 @@
 package leaderus.study3;
 
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 import java.util.Map.Entry;
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.Semaphore;
+
+import scala.util.Random;
 
 public class SQLEngine {
 	
-	public void runSQL(String ownerId,String sql){
-		final String runSQL = sql;
-		//启动一个线程异步执行SQL，随机Sleep 10-1000毫秒表示执行时间
-		new Thread(
-				new Runnable(){
-					public void run() {
-						int time = new Random().nextInt(1000);
-						try {
-							Thread.sleep(time);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-						
-						System.out.println("SQL:"+runSQL+",执行了"+time+"毫秒！");
-						Entry<String, AtomicInteger> limitSql = LinkedRateLimitingSQLQueue.getLimitSql(runSQL);
-						if(limitSql != null){
-							limitSql.getValue().incrementAndGet();
-							System.out.println(limitSql.getValue());
-						}
-					}
-				}
-		).start();
+	private Map<String,Semaphore> limitMap;
+	
+	public SQLEngine(Map<String,Semaphore> limitMap){
+		this.limitMap = limitMap;
 	}
+	
+	public void runSQL(String ownerId,String sql){
+		Semaphore semp = getSqlLimit(sql);
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				long sleepTime = 100;
+				try {
+					Thread.sleep(sleepTime);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				System.out.println(ownerId+"，"+sql+",执行了："+sleepTime+" 毫秒");
+				if(null != semp){
+					semp.release();
+				}
+			}
+		}).start();
+	}
+	
+	/**
+     * 查询sql限制
+     */
+    public Semaphore getSqlLimit(String runSQL){
+    	Set<Entry<String, Semaphore>> entrySet = limitMap.entrySet();
+    	Iterator<Entry<String, Semaphore>> iter = entrySet.iterator();
+    	while(iter.hasNext()){
+    		Entry<String, Semaphore> next = iter.next();
+    		String limitSQL = next.getKey();
+    		if(runSQL.startsWith(limitSQL)){
+    			return next.getValue();
+    		}
+    	}
+    	return null;
+    }
 }

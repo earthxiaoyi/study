@@ -1,6 +1,5 @@
 package leaderus.study3;
 
-import java.util.concurrent.atomic.AtomicInteger;
 
 public interface RateLimitingSQLQueue {
 
