@@ -21,7 +21,7 @@ public class SQLEngine {
 		new Thread(new Runnable() {
 			@Override
 			public void run() {
-				long sleepTime = 100;
+				long sleepTime = 1000;
 				try {
 					Thread.sleep(sleepTime);
 				} catch (InterruptedException e) {

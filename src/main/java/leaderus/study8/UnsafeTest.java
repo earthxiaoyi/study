@@ -12,6 +12,9 @@ public class UnsafeTest {
 		Field f = Unsafe.class.getDeclaredField("theUnsafe");
 		f.setAccessible(true);
 		unsafe = (Unsafe)f.get(null);
+		
+		long pos = getAddr(new Object());
+		System.out.println(pos);
 	}
 	
 	/**
