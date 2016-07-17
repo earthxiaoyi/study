@@ -1,6 +1,9 @@
 package leaderus.study8;
 
 public class RowDataSorter {
+	
+	private RowDataOffheapStorage storage = new RowDataOffheapStorage(null);
+	
 	// 添加一个新行，排序字段从第几个字节开始，长度是多少，比如一个字节，2个，4个，八个等，简单比较如下：按照ascii字符的大小排序，比如ab999<ba999
 	// 建议添加的过程中就拍好序（RowData序列）
 	public void addNewRow(byte[] rowData, int orderColStart, int orderColLen) {
@@ -12,5 +15,6 @@ public class RowDataSorter {
 
 	// 删除内存映射文件
 	public void close() {
+		storage.close();
 	}
 }
